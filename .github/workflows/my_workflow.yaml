@@ -1,8 +1,4 @@
 name: Python CI
-"""on:
-  - push
-  - pull_request
-Это означает, что при любом push или pull request workflow автоматически запускается."""
 on:
   - push
   - pull_request
