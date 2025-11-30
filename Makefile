@@ -35,6 +35,6 @@ render-start:
 # команда для запуска приложения в продакшене
 PORT ?= 8000
 start:
-	uv run gunicorn -w 5 -b 0.0.0.0:$(PORT) page_analyzer:app 
+	gunicorn -w 5 -b 0.0.0.0:$(PORT) page_analyzer:app
 
 .PHONY: install test lint selfcheck check build package-install reinstall uninstall
