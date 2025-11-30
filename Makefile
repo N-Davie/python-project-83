@@ -5,14 +5,12 @@ install:
 dev:
 	uv run flask --debug --app page_analyzer:app run
 
-run:
-	uv run gendiff
+# run: uv run gendiff
 
 test:
 	uv run pytest
 
-# test-coverage:
-	# uv run pytest --cov=gendiff --cov-report=xml:coverage.xml
+# test-coverage: uv run pytest --cov=gendiff --cov-report=xml:coverage.xml
 
 lint:
 	uv run ruff check app
