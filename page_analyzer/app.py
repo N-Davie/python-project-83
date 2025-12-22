@@ -1,7 +1,8 @@
 import os
 
 from flask import Flask
-from dotenv import load_dotenv  #позволяет загружать переменные окружения (конфигурацию, ключи API, URL-адреса) 
+from dotenv import load_dotenv  #позволяет загружать 
+# переменные окружения (конфигурацию, ключи API, URL-адреса) 
 
 
 load_dotenv()
@@ -12,4 +13,7 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
 @app.route('/')
 def index():
-    return 'Hello, world!'
+    return render_template("index.html")
+
+if __name__ == "__main__":
+    app.run(debug=True)
