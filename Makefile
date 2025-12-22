@@ -7,8 +7,7 @@ dev:
 
 # run: uv run gendiff
 
-test:
-	uv run pytest
+# test: uv run pytest
 
 # test-coverage: uv run pytest --cov=gendiff --cov-report=xml:coverage.xml
 
