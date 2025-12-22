@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask
+from flask import Flask, render_template
 from dotenv import load_dotenv  #позволяет загружать 
 # переменные окружения (конфигурацию, ключи API, URL-адреса) 
 
