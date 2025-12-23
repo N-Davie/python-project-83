@@ -1,6 +1,6 @@
 install:
 	uv sync
-
+	uv run pip install psycopg2-binary python-dotenv validators
 # ниже команда для запуска приложения в режиме отладки
 dev:
 	uv run flask --debug --app page_analyzer:app run
