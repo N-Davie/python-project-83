@@ -20,6 +20,16 @@
     </div>
 </nav>
 
+<div class="container mt-3">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}" role="alert">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endwith %}
+</div>
+
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-8">
@@ -32,11 +42,16 @@
                     Бесплатно проверяйте сайты на SEO-пригодность
                 </p>
 
-                <form class="mb-4 d-flex justify-content-center">
+                <form class="mb-4 d-flex justify-content-center"
+                action="{{ url_for('urls_create') }}"
+                method="POST"
+                >
                     <input 
-                        type="text" 
+                        type="text"
+                        name="url"
                         class="form-control me-2" 
                         placeholder="https://example.com"
+                        required
                     >
                     <button class="btn btn-primary">
                         ПРОВЕРИТЬ
