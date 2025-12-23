@@ -15,7 +15,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'dev')
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = SECRET_KEY
-
+DATABASE_URL = os.getenv('DATABASE_URL')
 
 # Функция подключения к БД
 def get_db_connection():
