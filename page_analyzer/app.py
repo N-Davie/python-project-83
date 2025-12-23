@@ -17,7 +17,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = SECRET_KEY
 DATABASE_URL = os.getenv('DATABASE_URL')
 
-# Функция подключения к БД
+
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL)
 
@@ -51,7 +51,10 @@ def urls_create():
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             # Проверяем, есть ли уже такой URL
-            cur.execute('SELECT id FROM urls WHERE name = %s;', (normalized_url,))
+            cur.execute(
+                'SELECT id FROM urls WHERE name = %s;',
+                (normalized_url,)
+            )
             existing = cur.fetchone()
 
             if existing:
@@ -60,7 +63,9 @@ def urls_create():
 
             # Вставка нового URL
             cur.execute(
-                'INSERT INTO urls (name, created_at) VALUES (%s, %s) RETURNING id;',
+                'INSERT INTO urls (name, created_at) '
+                'VALUES (%s, %s) '
+                'RETURNING id;',
                 (normalized_url, datetime.now())
             )
             url_id = cur.fetchone()[0]
@@ -74,25 +79,62 @@ def urls_create():
 def show_url(id):
     with get_db_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute('SELECT id, name, created_at FROM urls WHERE id = %s;', (id,))
+            # Получаем информацию о сайте
+            cur.execute(
+                'SELECT id, name, created_at FROM urls WHERE id = %s;',
+                (id,)
+            )
             url = cur.fetchone()
 
-    if not url:
-        return 'Not found', 404
+            if not url:
+                return 'Not found', 404
 
-    return render_template('url.html', url=url)
+            # Получаем список проверок для этого URL
+            cur.execute(
+                'SELECT * FROM url_checks WHERE url_id = %s '
+                'ORDER BY created_at DESC;',
+                (id,)
+            )
+            checks = cur.fetchall()
+
+    # Передаём и url, и проверки в шаблон
+    return render_template('url.html', url=url, checks=checks)
+
+
+@app.post('/urls/<int:id>/checks')
+def url_checks_create(id):
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                'INSERT INTO url_checks (url_id, created_at)'
+                'VALUES (%s, NOW()) RETURNING id;',
+                (id,)
+            )
+            conn.commit()
+
+    flash('Проверка успешно добавлена', 'success')
+    return redirect(url_for('show_url', id=id))
 
 
 @app.get('/urls')
 def urls():
     with get_db_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute(
-                'SELECT id, name, created_at FROM urls ORDER BY created_at DESC;'
-            )
-            urls = cur.fetchall()
+            # Получаем список сайтов
+            cur.execute('SELECT id, name, created_at FROM urls ORDER BY created_at DESC;')
+            urls_data = cur.fetchall()
 
-    return render_template('urls.html', urls=urls)
+            # Получаем дату последней проверки для каждого сайта
+            urls_with_last_check = []
+            for url in urls_data:
+                cur.execute(
+                    'SELECT MAX(created_at) FROM url_checks WHERE url_id = %s;',
+                    (url[0],)
+                )
+                last_check = cur.fetchone()[0]  # может быть None, если проверок нет
+                urls_with_last_check.append((*url, last_check))
+
+    return render_template('urls.html', urls=urls_with_last_check)
 
 
 if __name__ == '__main__':
