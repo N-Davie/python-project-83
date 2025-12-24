@@ -9,7 +9,10 @@ dependencies = [
 	"pyyaml>=6.0.2",
 	"flask",
 	"python-dotenv",
-	"gunicorn"
+	"gunicorn",
+	"psycopg2-binary>=2.9",
+	"validators>=1.0",
+	"requests>=2.31",
 ]
 
 [build-system]
