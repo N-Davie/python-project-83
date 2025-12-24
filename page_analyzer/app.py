@@ -15,7 +15,6 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'dev')
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = SECRET_KEY
-DATABASE_URL = os.getenv('DATABASE_URL')
 
 
 def get_db_connection():
@@ -106,7 +105,7 @@ def url_checks_create(id):
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                'INSERT INTO url_checks (url_id, created_at)'
+                'INSERT INTO url_checks (url_id, created_at) '
                 'VALUES (%s, NOW()) RETURNING id;',
                 (id,)
             )
@@ -120,24 +119,34 @@ def url_checks_create(id):
 def urls():
     with get_db_connection() as conn:
         with conn.cursor() as cur:
-            # Получаем список сайтов
-            cur.execute('SELECT id, name, created_at '
-                        'FROM urls '
-                        'ORDER BY created_at DESC;')
+            # 1. Получаем список сайтов
+            cur.execute(
+                'SELECT id, name '
+                'FROM urls '
+                'ORDER BY created_at DESC;'
+            )
             urls_data = cur.fetchall()
 
-            # Получаем дату последней проверки для каждого сайта
             urls_with_last_check = []
+
+            # 2. Для каждого сайта берём последнюю проверку
             for url in urls_data:
                 cur.execute(
-                    'SELECT MAX(created_at), status_code '
-                    'FROM url_checks WHERE url_id = %s;',
-                    'GROUP BY status_code '
-                    'ORDER BY MAX(created_at) DESC LIMIT 1;'
+                    'SELECT created_at, status_code '
+                    'FROM url_checks '
+                    'WHERE url_id = %s '
+                    'ORDER BY created_at DESC '
+                    'LIMIT 1;',
                     (url[0],)
                 )
-                last_check = cur.fetchone()[0]  # может быть None, если проверок нет
-                urls_with_last_check.append((*url, last_check))
+                row = cur.fetchone()
+
+                last_check_date = row[0] if row else None
+                status_code = row[1] if row else None
+
+                urls_with_last_check.append(
+                    (url[0], url[1], last_check_date, status_code)
+                )
 
     return render_template('urls.html', urls=urls_with_last_check)
 

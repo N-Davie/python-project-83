@@ -16,7 +16,7 @@
             <tr>
                 <th>ID</th>
                 <th>Имя</th>
-                <th>Проследняя проверка</th>
+                <th>Последняя проверка</th>
                 <th>Код ответа</th>
             </tr>
         </thead>
@@ -25,7 +25,7 @@
             <tr>
                 <td>{{ url[0] }}</td>
                 <td><a href="{{ url_for('show_url', id=url[0]) }}">{{ url[1] }}</a></td>
-                <td>{{ url[2] }}</td>
+                <td>{{ url[2] if url[2] else '—' }}</td>
                 <td>{{ url[3] if url[3] else '—' }}</td>
             </tr>
             {% endfor %}
