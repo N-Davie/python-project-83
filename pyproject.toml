@@ -11,7 +11,7 @@ dependencies = [
     "python-dotenv>=1.0",
     "gunicorn",
     "psycopg2-binary>=2.9",
-    "validators>=1.0",
+    "validators",
     "requests>=2.31",
 ]
 
