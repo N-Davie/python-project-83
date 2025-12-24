@@ -130,8 +130,10 @@ def urls():
             urls_with_last_check = []
             for url in urls_data:
                 cur.execute(
-                    'SELECT MAX(created_at) '
+                    'SELECT MAX(created_at), status_code '
                     'FROM url_checks WHERE url_id = %s;',
+                    'GROUP BY status_code '
+                    'ORDER BY MAX(created_at) DESC LIMIT 1;'
                     (url[0],)
                 )
                 last_check = cur.fetchone()[0]  # может быть None, если проверок нет
