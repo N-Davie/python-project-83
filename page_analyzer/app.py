@@ -121,14 +121,17 @@ def urls():
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             # Получаем список сайтов
-            cur.execute('SELECT id, name, created_at FROM urls ORDER BY created_at DESC;')
+            cur.execute('SELECT id, name, created_at '
+                        'FROM urls '
+                        'ORDER BY created_at DESC;')
             urls_data = cur.fetchall()
 
             # Получаем дату последней проверки для каждого сайта
             urls_with_last_check = []
             for url in urls_data:
                 cur.execute(
-                    'SELECT MAX(created_at) FROM url_checks WHERE url_id = %s;',
+                    'SELECT MAX(created_at) '
+                    'FROM url_checks WHERE url_id = %s;',
                     (url[0],)
                 )
                 last_check = cur.fetchone()[0]  # может быть None, если проверок нет
