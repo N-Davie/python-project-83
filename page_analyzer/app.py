@@ -6,6 +6,7 @@ import psycopg2
 import validators
 from dotenv import load_dotenv
 from flask import Flask, flash, redirect, render_template, request, url_for
+import requests
 
 # Загружаем переменные окружения из .env
 load_dotenv()
@@ -102,16 +103,42 @@ def show_url(id):
 
 @app.post('/urls/<int:id>/checks')
 def url_checks_create(id):
+    # 1. Получаем URL из базы
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                'INSERT INTO url_checks (url_id, created_at) '
-                'VALUES (%s, NOW()) RETURNING id;',
+                'SELECT name FROM urls WHERE id = %s;',
                 (id,)
+            )
+            row = cur.fetchone()
+
+    if not row:
+        flash('Сайт не найден', 'danger')
+        return redirect(url_for('urls'))
+
+    site_url = row[0]
+
+    # 2. Делаем HTTP-запрос
+    try:
+        response = requests.get(site_url, timeout=5)
+        response.raise_for_status()
+    except requests.RequestException:
+        flash('Произошла ошибка при проверке', 'danger')
+        return redirect(url_for('show_url', id=id))
+
+    status_code = response.status_code
+
+    # 3. Сохраняем результат проверки
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                'INSERT INTO url_checks (url_id, status_code, created_at) '
+                'VALUES (%s, %s, NOW());',
+                (id, status_code)
             )
             conn.commit()
 
-    flash('Проверка успешно добавлена', 'success')
+    flash('Страница успешно проверена', 'success')
     return redirect(url_for('show_url', id=id))
 
 
