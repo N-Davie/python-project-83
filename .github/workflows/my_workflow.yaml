@@ -11,21 +11,13 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Install uv
-        run: |
-          curl -sSfL https://install.goreleaser.com/github.com/goreleaser/uv.sh | sh
-          export PATH="$HOME/.local/bin:$PATH"
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
       - name: Install dependencies
         run: |
-          pip install --upgrade pip
+          pip install uv
           make install
-
       - name: Run linter
         run: make check
