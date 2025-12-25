@@ -12,7 +12,7 @@ dev:
 # test-coverage: uv run pytest --cov=gendiff --cov-report=xml:coverage.xml
 
 lint:
-	ruff check ruff check page_analyzer/
+	ruff check page_analyzer/
 
 check: test lint
 
