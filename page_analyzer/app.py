@@ -1,14 +1,13 @@
 import os
-from urllib.parse import urlparse
 from datetime import datetime
+from urllib.parse import urlparse
 
 import psycopg2
+import requests
 import validators
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from flask import Flask, flash, redirect, render_template, request, url_for
-import requests
-from bs4 import BeautifulSoup
-
 
 # Загружаем переменные окружения из .env
 load_dotenv()
@@ -164,6 +163,7 @@ def urls():
                 )
 
     return render_template('urls.html', urls=urls_with_last_check)
+
 
 @app.get('/urls/<int:id>')
 def show_url(id):

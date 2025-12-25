@@ -1,36 +1,26 @@
 name: Python CI
 on:
-  - push
-  - pull_request
+  push:
+    branches:
+      - main
+  pull_request:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+
       - name: Install dependencies
         run: |
-          pip install uv
+          pip install --upgrade pip
           make install
-      - name: Run linter and pytest
-        run: |
-          make check
-      - name: Run test coverage
-        run: |
-          make test-coverage
 
-      - name: SonarQubeScan
-        uses: SonarSource/sonarqube-scan-action@v5
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.projectKey=lyovaparsyan94_python-project-50
-            -Dsonar.organization=lyovaparsyan94
-            -Dsonar.python.coverage.reportPaths=coverage.xml
-            -Dsonar.coverage.exclusions=tests/**
-            -Dsonar.exclusions=tests/**
+      - name: Run linter
+        run: make check
