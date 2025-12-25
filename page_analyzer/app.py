@@ -7,6 +7,8 @@ import validators
 from dotenv import load_dotenv
 from flask import Flask, flash, redirect, render_template, request, url_for
 import requests
+from bs4 import BeautifulSoup
+
 
 # Загружаем переменные окружения из .env
 load_dotenv()
@@ -75,32 +77,6 @@ def urls_create():
     return redirect(url_for('show_url', id=url_id))
 
 
-@app.get('/urls/<int:id>')
-def show_url(id):
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            # Получаем информацию о сайте
-            cur.execute(
-                'SELECT id, name, created_at FROM urls WHERE id = %s;',
-                (id,)
-            )
-            url = cur.fetchone()
-
-            if not url:
-                return 'Not found', 404
-
-            # Получаем список проверок для этого URL
-            cur.execute(
-                'SELECT * FROM url_checks WHERE url_id = %s '
-                'ORDER BY created_at DESC;',
-                (id,)
-            )
-            checks = cur.fetchall()
-
-    # Передаём и url, и проверки в шаблон
-    return render_template('url.html', url=url, checks=checks)
-
-
 @app.post('/urls/<int:id>/checks')
 def url_checks_create(id):
     # 1. Получаем URL из базы
@@ -128,13 +104,25 @@ def url_checks_create(id):
 
     status_code = response.status_code
 
-    # 3. Сохраняем результат проверки
+    # 3. Парсим HTML
+    soup = BeautifulSoup(response.text, 'html.parser')
+
+    h1 = soup.h1.text.strip() if soup.h1 else None
+    title = soup.title.text.strip() if soup.title else None
+
+    description = None
+    meta_description = soup.find('meta', attrs={'name': 'description'})
+    if meta_description and meta_description.get('content'):
+        description = meta_description['content'].strip()
+
+    # 4. Сохраняем результат проверки
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                'INSERT INTO url_checks (url_id, status_code, created_at) '
-                'VALUES (%s, %s, NOW());',
-                (id, status_code)
+                'INSERT INTO url_checks '
+                '(url_id, status_code, h1, title, description, created_at) '
+                'VALUES (%s, %s, %s, %s, %s, NOW());',
+                (id, status_code, h1, title, description)
             )
             conn.commit()
 

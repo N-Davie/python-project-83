@@ -59,6 +59,9 @@
                 <th>ID</th>
                 <th>Дата</th>
                 <th>Код ответа</th>
+                 <th>H1</th>
+                <th>Title</th>
+                <th>Description</th>
             </tr>
         </thead>
         <tbody>
@@ -67,6 +70,9 @@
                 <td>{{ check[0] }}</td>
                 <td>{{ check[6] }}</td>
                 <td>{{ check[2] }}</td>
+                <td>{{ check[3] or '—' }}</td>
+                <td>{{ check[4] or '—' }}</td>
+                <td>{{ check[5] or '—' }}</td>
             </tr>
             {% endfor %}
         </tbody>

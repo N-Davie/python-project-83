@@ -13,6 +13,7 @@ dependencies = [
     "psycopg2-binary>=2.9",
     "validators",
     "requests>=2.31",
+    "beautifulsoup4",
 ]
 
 [build-system]
