@@ -165,6 +165,29 @@ def urls():
 
     return render_template('urls.html', urls=urls_with_last_check)
 
+@app.get('/urls/<int:id>')
+def show_url(id):
+    with get_db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                'SELECT id, name, created_at FROM urls WHERE id = %s;',
+                (id,)
+            )
+            url = cur.fetchone()
+
+            if not url:
+                return 'Not found', 404
+
+            cur.execute(
+                'SELECT id, status_code, h1, title, description, created_at '
+                'FROM url_checks WHERE url_id = %s '
+                'ORDER BY created_at DESC;',
+                (id,)
+            )
+            checks = cur.fetchall()
+
+    return render_template('url.html', url=url, checks=checks)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
