@@ -4,23 +4,16 @@ from flask import Flask, flash, redirect, render_template, request, url_for
 from dotenv import load_dotenv
 import requests
 
+from page_analyzer.config import Config
 from page_analyzer.database import (
     insert_url, get_urls_with_last_check, insert_url_check, get_url
 )
 from page_analyzer.parser import parse_html
 from page_analyzer.url_normalization import normalize_url, validate_url
 
-# Загружаем переменные окружения из .env
-load_dotenv()
-
-
-SECRET_KEY = os.getenv('SECRET_KEY')
-if not SECRET_KEY:
-    raise ValueError("SECRET_KEY environment variable must be set")
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = SECRET_KEY
-
+app.config.from_object(Config)
 
 @app.route('/')
 def index():
