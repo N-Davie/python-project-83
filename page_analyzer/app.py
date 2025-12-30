@@ -1,26 +1,18 @@
 import os
-from datetime import datetime
-from urllib.parse import urlparse
-
-import psycopg2
-import requests
-import validators
-from bs4 import BeautifulSoup
-from dotenv import load_dotenv
 from flask import Flask, flash, redirect, render_template, request, url_for
+from dotenv import load_dotenv
+import requests
 
-# Загружаем переменные окружения из .env
+from page_analyzer.database import (
+    insert_url, get_urls_with_last_check, insert_url_check, get_url
+)
+from page_analyzer.parser import parse_html
+from page_analyzer.url_normalization import normalize_url, validate_url
+
 load_dotenv()
 
-DATABASE_URL = os.getenv('DATABASE_URL')
-SECRET_KEY = os.getenv('SECRET_KEY', 'dev')
-
 app = Flask(__name__)
-app.config['SECRET_KEY'] = SECRET_KEY
-
-
-def get_db_connection():
-    return psycopg2.connect(DATABASE_URL)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev')
 
 
 @app.route('/')
@@ -31,69 +23,27 @@ def index():
 @app.post('/urls')
 def urls_create():
     url = request.form.get('url', '').strip()
-    errors = []
-
-    # Валидация URL
-    if not validators.url(url):
-        errors.append('Некорректный URL')
-    if len(url) > 255:
-        errors.append('URL слишком длинный')
-
+    errors = validate_url(url)
     if errors:
-        for error in errors:
-            flash(error, 'danger')
+        for e in errors:
+            flash(e, 'danger')
         return render_template('index.html', url=url), 422
 
-    # Нормализация URL
-    parsed_url = urlparse(url)
-    normalized_url = f'{parsed_url.scheme}://{parsed_url.netloc}'
-
-    # Работа с БД
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            # Проверяем, есть ли уже такой URL
-            cur.execute(
-                'SELECT id FROM urls WHERE name = %s;',
-                (normalized_url,)
-            )
-            existing = cur.fetchone()
-
-            if existing:
-                flash('Страница уже существует', 'info')
-                return redirect(url_for('show_url', id=existing[0]))
-
-            # Вставка нового URL
-            cur.execute(
-                'INSERT INTO urls (name, created_at) '
-                'VALUES (%s, %s) '
-                'RETURNING id;',
-                (normalized_url, datetime.now())
-            )
-            url_id = cur.fetchone()[0]
-            conn.commit()
-
+    url_id = insert_url(normalize_url(url))
     flash('Страница успешно добавлена', 'success')
     return redirect(url_for('show_url', id=url_id))
 
 
 @app.post('/urls/<int:id>/checks')
 def url_checks_create(id):
-    # 1. Получаем URL из базы
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                'SELECT name FROM urls WHERE id = %s;',
-                (id,)
-            )
-            row = cur.fetchone()
-
-    if not row:
+    result = get_url(id)
+    if result is None:
         flash('Сайт не найден', 'danger')
         return redirect(url_for('urls'))
 
-    site_url = row[0]
+    url, _ = result
+    site_url = url[1]
 
-    # 2. Делаем HTTP-запрос
     try:
         response = requests.get(site_url, timeout=5)
         response.raise_for_status()
@@ -102,90 +52,24 @@ def url_checks_create(id):
         return redirect(url_for('show_url', id=id))
 
     status_code = response.status_code
-
-    # 3. Парсим HTML
-    soup = BeautifulSoup(response.text, 'html.parser')
-
-    h1 = soup.h1.text.strip() if soup.h1 else None
-    title = soup.title.text.strip() if soup.title else None
-
-    description = None
-    meta_description = soup.find('meta', attrs={'name': 'description'})
-    if meta_description and meta_description.get('content'):
-        description = meta_description['content'].strip()
-
-    # 4. Сохраняем результат проверки
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                'INSERT INTO url_checks '
-                '(url_id, status_code, h1, title, description, created_at) '
-                'VALUES (%s, %s, %s, %s, %s, NOW());',
-                (id, status_code, h1, title, description)
-            )
-            conn.commit()
-
+    h1, title, description = parse_html(response.text)
+    insert_url_check(id, status_code, h1, title, description)
     flash('Страница успешно проверена', 'success')
     return redirect(url_for('show_url', id=id))
 
 
 @app.get('/urls')
 def urls():
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            # 1. Получаем список сайтов
-            cur.execute(
-                'SELECT id, name '
-                'FROM urls '
-                'ORDER BY created_at DESC;'
-            )
-            urls_data = cur.fetchall()
-
-            urls_with_last_check = []
-
-            # 2. Для каждого сайта берём последнюю проверку
-            for url in urls_data:
-                cur.execute(
-                    'SELECT created_at, status_code '
-                    'FROM url_checks '
-                    'WHERE url_id = %s '
-                    'ORDER BY created_at DESC '
-                    'LIMIT 1;',
-                    (url[0],)
-                )
-                row = cur.fetchone()
-
-                last_check_date = row[0] if row else None
-                status_code = row[1] if row else None
-
-                urls_with_last_check.append(
-                    (url[0], url[1], last_check_date, status_code)
-                )
-
+    urls_with_last_check = get_urls_with_last_check()
     return render_template('urls.html', urls=urls_with_last_check)
 
 
 @app.get('/urls/<int:id>')
 def show_url(id):
-    with get_db_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                'SELECT id, name, created_at FROM urls WHERE id = %s;',
-                (id,)
-            )
-            url = cur.fetchone()
-
-            if not url:
-                return 'Not found', 404
-
-            cur.execute(
-                'SELECT id, status_code, h1, title, description, created_at '
-                'FROM url_checks WHERE url_id = %s '
-                'ORDER BY created_at DESC;',
-                (id,)
-            )
-            checks = cur.fetchall()
-
+    result = get_url(id)
+    if result is None:
+        return 'Not found', 404
+    url, checks = result
     return render_template('url.html', url=url, checks=checks)
 
 
