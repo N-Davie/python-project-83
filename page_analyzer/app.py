@@ -13,8 +13,10 @@ from page_analyzer.url_normalization import normalize_url, validate_url
 # Загружаем переменные окружения из .env
 load_dotenv()
 
-# Берем SECRET_KEY из env, если нет — генерируем случайный для разработки
-SECRET_KEY = os.getenv('SECRET_KEY') or secrets.token_hex(16)
+
+SECRET_KEY = os.getenv('SECRET_KEY')
+if not SECRET_KEY:
+    raise ValueError("SECRET_KEY environment variable must be set")
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = SECRET_KEY
