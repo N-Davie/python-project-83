@@ -1,4 +1,5 @@
 import os
+import secrets
 from flask import Flask, flash, redirect, render_template, request, url_for
 from dotenv import load_dotenv
 import requests
@@ -9,10 +10,14 @@ from page_analyzer.database import (
 from page_analyzer.parser import parse_html
 from page_analyzer.url_normalization import normalize_url, validate_url
 
+# Загружаем переменные окружения из .env
 load_dotenv()
 
+# Берем SECRET_KEY из env, если нет — генерируем случайный для разработки
+SECRET_KEY = os.getenv('SECRET_KEY') or secrets.token_hex(16)
+
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev')
+app.config['SECRET_KEY'] = SECRET_KEY
 
 
 @app.route('/')
@@ -29,7 +34,12 @@ def urls_create():
             flash(e, 'danger')
         return render_template('index.html', url=url), 422
 
-    url_id = insert_url(normalize_url(url))
+    normalized_url = normalize_url(url)
+    url_id = insert_url(normalized_url)
+    if url_id is None:
+        flash('Страница уже существует', 'info')
+        return redirect(url_for('show_url', id=url_id))
+
     flash('Страница успешно добавлена', 'success')
     return redirect(url_for('show_url', id=url_id))
 
