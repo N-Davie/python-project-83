@@ -15,6 +15,7 @@ from page_analyzer.url_normalization import normalize_url, validate_url
 app = Flask(__name__)
 app.config.from_object(Config)
 
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -24,18 +25,21 @@ def index():
 def urls_create():
     url = request.form.get('url', '').strip()
     errors = validate_url(url)
+
     if errors:
         for e in errors:
             flash(e, 'danger')
         return render_template('index.html', url=url), 422
 
     normalized_url = normalize_url(url)
-    url_id = insert_url(normalized_url)
-    if url_id is None:
-        flash('Страница уже существует', 'info')
-        return redirect(url_for('show_url', id=url_id))
 
-    flash('Страница успешно добавлена', 'success')
+    url_id, created = insert_url(normalized_url)
+
+    if not created:
+        flash('Страница уже существует', 'info')
+    else:
+        flash('Страница успешно добавлена', 'success')
+
     return redirect(url_for('show_url', id=url_id))
 
 
@@ -58,8 +62,10 @@ def url_checks_create(id):
 
     status_code = response.status_code
     h1, title, description = parse_html(response.text)
+
     insert_url_check(id, status_code, h1, title, description)
     flash('Страница успешно проверена', 'success')
+
     return redirect(url_for('show_url', id=id))
 
 
@@ -74,6 +80,7 @@ def show_url(id):
     result = get_url(id)
     if result is None:
         return 'Not found', 404
+
     url, checks = result
     return render_template('url.html', url=url, checks=checks)
 
