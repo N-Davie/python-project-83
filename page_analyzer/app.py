@@ -1,7 +1,4 @@
-import os
-import secrets
 from flask import Flask, flash, redirect, render_template, request, url_for
-from dotenv import load_dotenv
 import requests
 
 from page_analyzer.config import Config
