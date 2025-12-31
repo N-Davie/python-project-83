@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup
 
+
 def parse_html(html_text):
     soup = BeautifulSoup(html_text, 'html.parser')
 
