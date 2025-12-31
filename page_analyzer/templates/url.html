@@ -68,16 +68,15 @@
             {% for check in checks %}
             <tr>
                 <td>{{ check[0] }}</td>              <!-- ID проверки -->
-                <td>{{ check[5] }}</td>              <!-- Дата проверки -->
                 <td>{{ check[1] }}</td>              <!-- Код ответа -->
                 <td>{{ check[2] or '—' }}</td>       <!-- H1 -->
                 <td>{{ check[3] or '—' }}</td>       <!-- Title -->
                 <td>{{ check[4] or '—' }}</td>       <!-- Description -->
+                <td>{{ check[5] }}</td>              <!-- Дата проверки -->
             </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
-
 </body>
 </html>
